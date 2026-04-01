@@ -1,0 +1,4 @@
+akshare>=1.18.0
+pywencai>=0.1.0
+python-docx>=0.8.11
+pandas>=2.0.0
