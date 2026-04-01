@@ -63,21 +63,35 @@ def calculate_support_levels(df, current_price):
     if df is None or len(df) == 0:
         return [current_price * 0.95, current_price * 0.90]
     
-    # 方法 1：均线支撑
-    ma20 = df['收盘'].iloc[-20:].mean() if len(df) >= 20 else current_price
-    ma10 = df['收盘'].iloc[-10:].mean() if len(df) >= 10 else current_price
-    
-    # 方法 2：前期低点
-    recent_lows = df['最低'].iloc[-20:].min() if len(df) >= 20 else current_price * 0.95
-    
-    # 方法 3：整数关口
-    round_price = round(current_price / 10) * 10
-    
-    # 综合判断
-    weak_support = min(ma10, recent_lows)
-    strong_support = min(ma20, recent_lows, round_price)
-    
-    return [strong_support, weak_support]
+    try:
+        # 方法 1：均线支撑
+        ma20 = df['收盘'].iloc[-20:].mean() if len(df) >= 20 else current_price
+        ma10 = df['收盘'].iloc[-10:].mean() if len(df) >= 10 else current_price
+        
+        # 方法 2：前期低点
+        recent_lows = df['最低'].iloc[-20:].min() if len(df) >= 20 else current_price * 0.95
+        
+        # 方法 3：整数关口（向下取整）
+        round_price = round(current_price / 10) * 10
+        if round_price >= current_price:
+            round_price -= 10
+        
+        # 综合判断（只取低于当前价的支撑）
+        supports_below = [s for s in [ma20, ma10, recent_lows, round_price] if s < current_price]
+        
+        if not supports_below:
+            # 如果没有支撑位低于现价，使用百分比止损
+            return [current_price * 0.95, current_price * 0.90]
+        
+        supports_below.sort()
+        weak_support = supports_below[-1] if len(supports_below) > 0 else current_price * 0.95
+        strong_support = supports_below[0] if len(supports_below) > 1 else current_price * 0.90
+        
+        return [strong_support, weak_support]
+        
+    except Exception as e:
+        print(f"计算支撑位失败：{e}")
+        return [current_price * 0.95, current_price * 0.90]
 
 
 def calculate_resistance_levels(df, current_price):
