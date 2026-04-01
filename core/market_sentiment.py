@@ -32,9 +32,12 @@ def calculate_sentiment_score(date=None):
     # 获取涨停数据
     zt_stats = get_zt_pool_strength(date)
     
-    # 获取跌停数据
-    dt_df = get_limit_down_pool(date)
-    limit_down_count = len(dt_df) if dt_df is not None else 0
+    # 获取跌停数据（简化处理，跌停数据可选）
+    try:
+        dt_df = get_limit_down_pool(date)
+        limit_down_count = len(dt_df) if dt_df is not None else 0
+    except:
+        limit_down_count = 0  # 如果接口不可用，设为 0
     
     # 情绪评分公式
     # 基础分 50 + (涨停 - 跌停)*2 + 连板高度*5
@@ -47,9 +50,9 @@ def calculate_sentiment_score(date=None):
         'score': round(score, 1),
         'limit_up_count': zt_stats['total'],
         'limit_down_count': limit_down_count,
-        'max_consecutive': zt_stats['consecutive_5'],
-        'consecutive_3': zt_stats['consecutive_3'],
-        'consecutive_2': zt_stats['consecutive_2'],
+        'max_consecutive': zt_stats.get('consecutive_5', 0),
+        'consecutive_3': zt_stats.get('consecutive_3', 0),
+        'consecutive_2': zt_stats.get('consecutive_2', 0),
         'zt_strength': zt_stats
     }
 
@@ -155,14 +158,14 @@ def get_market_sentiment_full(date=None):
     position = calculate_position_advice(sentiment['score'], stage)
     
     return {
-        'score': sentiment['score'],
+        'score': sentiment.get('score', 50),
         'stage': stage,
         'stage_advice': stage_advice,
         'position': position,
-        'limit_up_count': sentiment['limit_up_count'],
-        'limit_down_count': sentiment['limit_down_count'],
-        'consecutive_3': sentiment['consecutive_3'],
-        'consecutive_5': sentiment['consecutive_5'],
+        'limit_up_count': sentiment.get('limit_up_count', 0),
+        'limit_down_count': sentiment.get('limit_down_count', 0),
+        'consecutive_3': sentiment.get('consecutive_3', 0),
+        'consecutive_5': sentiment.get('consecutive_5', 0),
         'date': date if date else datetime.now().strftime('%Y-%m-%d')
     }
 
@@ -177,7 +180,7 @@ def format_sentiment_report(sentiment_data):
     Returns:
         str: 格式化报告
     """
-    score = sentiment_data['score']
+    score = sentiment_data.get('score', 50)
     
     # 进度条
     bar_length = int(score / 5)
@@ -194,12 +197,12 @@ def format_sentiment_report(sentiment_data):
     report = f"""
 【市场情绪】
 情绪评分：{score}/100  [{bar}] {icon}
-情绪阶段：{sentiment_data['stage']}
-涨跌停比：{sentiment_data['limit_up_count']} : {sentiment_data['limit_down_count']}
-3 连板以上：{sentiment_data['consecutive_3']} 只
-5 连板以上：{sentiment_data['consecutive_5']} 只
-操作建议：{sentiment_data['stage_advice']}
-仓位建议：{sentiment_data['position']['advice']}
+情绪阶段：{sentiment_data.get('stage', '未知')}
+涨跌停比：{sentiment_data.get('limit_up_count', 0)} : {sentiment_data.get('limit_down_count', 0)}
+3 连板以上：{sentiment_data.get('consecutive_3', 0)} 只
+5 连板以上：{sentiment_data.get('consecutive_5', 0)} 只
+操作建议：{sentiment_data.get('stage_advice', '谨慎观望')}
+仓位建议：{sentiment_data.get('position', {}).get('advice', 'N/A')}
 """
     return report.strip()
 

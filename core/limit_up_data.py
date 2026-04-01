@@ -107,8 +107,14 @@ def get_limit_down_pool(date=None):
             date = date.replace('-', '')
     
     try:
-        # 获取跌停池数据
-        dt_df = ak.stock_zt_pool_dt_em(date=date)
+        # 获取跌停池数据（注意：AKShare 接口可能变化）
+        # 尝试多种可能的接口名
+        try:
+            dt_df = ak.stock_zt_pool_dt_em(date=date)
+        except AttributeError:
+            # 如果接口不存在，返回空 DataFrame
+            print(f"⚠️ 跌停池接口不可用")
+            return pd.DataFrame()
         
         if dt_df is None or len(dt_df) == 0:
             return pd.DataFrame()
